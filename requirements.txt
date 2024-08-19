@@ -1,0 +1,13 @@
+colorama
+keras
+numpy
+onnxruntime
+onnx
+pyfiglet
+requests
+selenium
+SpeechRecognition
+tensorflow
+tf-keras
+insightface
+transformers

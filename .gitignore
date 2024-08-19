@@ -1,0 +1,8 @@
+config/*
+tmp/*
+*.bak
+*.backup
+*.zip
+*.pyc
+*__pycache__*
+data/*
