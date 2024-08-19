@@ -1,3 +1,5 @@
+numba
+pydub
 colorama
 keras
 numpy
