@@ -360,7 +360,11 @@ def ses_den_metne(msg):
     # thread fonksiyonunun tanımlanması 
     def run_as_threads(): 
         # yanıtlanan mesaj bir sesli mesajmı diye kontrol ediliyor 
-        if msg.reply_to_message.voice:
+        if msg.reply_to_message:
+            if not msg.reply_to_message.voice:
+                CyberBot.reply_to(msg, "🎧 Lütfem bir sesli mesaj yanıtlayınız...")
+                return
+            
             # Dosya bilgilerinin alınması
             file_info = CyberBot.get_file(msg.reply_to_message.voice.file_id)
             target_ses_file = CyberBot.download_file(file_info.file_path)
