@@ -6,8 +6,10 @@ def binaryData(file_path:str) -> bytes:
         return target.read()
     
     
-@njit(nopython=True)
+@njit(nopython=True)    # numba ile hızlandırma makrosu
 def cosineSimilarityCalculator(face_embedding_sourceFile, face_embedding_targetFile) -> int:
+
+        # GErekli ön işlemler 
         dot_product_size = np.dot(face_embedding_sourceFile, face_embedding_targetFile)
         norm_sound1 = np.linalg.norm(face_embedding_sourceFile)
         norm_sound2 = np.linalg.norm(face_embedding_targetFile)

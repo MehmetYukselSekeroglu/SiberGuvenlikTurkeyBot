@@ -16,14 +16,15 @@ class FaceAnlyser():
     def compareFaces(self, sourceImage:str,targetImage:str) -> list:
         try:
 
-            
+            # verilerin okunması
             soruce_cv2_data = cv2.imread(sourceImage)
             target_cv2_data = cv2.imread(targetImage)
-        
+            
+            # analiz edilmesi 
             analysSource = self.faceAnalyserUI.get(soruce_cv2_data)
             analysTarget = self.faceAnalyserUI.get(target_cv2_data)
             
-            
+            # sorunların tespit edilmesi
             if len(analysSource) > 1 or len(analysTarget) > 1:
                 return [ False, "❌ Her resimde sadece 1 adet yüz kabul edilebilir." ]
             

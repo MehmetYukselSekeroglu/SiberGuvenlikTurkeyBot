@@ -7,6 +7,17 @@ __MODULE_LOG_NAME__ ="LOAD_CONFIG"
 
 
 def load_config_from_file(config_file:str=__CONFIG_FILE_PATH__) -> list[bool,dict]:
+    """
+    Config dosyasının yüklenmesini sağlar
+    
+    config_file -> dosya yolu 
+    
+    returns:
+        index 0 -> bool | True, False | Başarı durumu
+        index 1 -> dict | json | Config verileri
+    
+    
+    """
     try:
         if config_file != __CONFIG_FILE_PATH__:
             p_warn(f"Loading External Config File: {config_file}",__MODULE_LOG_NAME__)

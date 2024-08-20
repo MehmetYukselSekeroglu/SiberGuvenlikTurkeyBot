@@ -1,43 +1,72 @@
 # external library's 
-import telebot
-import os
-import sys
-import transformers
-import keras
-import time
-import json
-import random
-from telebot import types
-import threading
+import os   # işletim sistemi operasyonları için
+import sys   # sistemsel işlemler içim
+import transformers # metin özetleme için 
+import keras    # Antiİllegal model'i kullanmak için
+import time     # Zamansal işlemler için Uyku bekleme vs
+import json     # Config dosyasını yüklemek için
+import random   # Dosya adlarını benzersiz random sayılar için
+import telebot  # Telegram api
+from telebot import types   # fotoğraf vs göndermek için 
+import threading    # arkplanda çalışma için
 
 # local library's 
-from lib.sound_lib import *
-from lib.load_config import load_config_from_file
-from lib.output.banner import makeFigletBanner
-from lib.output.consolePrint import p_error,p_info,p_warn,p_title
-from lib.tokenizer import tokenize
-from lib.virus_total import is_url,virustotal_url_response_handler,virustotal_url_scanner
-from lib.init_insightface import initilate_insightface
-from lib.face_identify import insightface_method
+from lib.sound_lib import   *   # ses işlemleri
+from lib.load_config import load_config_from_file   # config yükleme 
+from lib.output.banner import makeFigletBanner  # banner 
+from lib.output.consolePrint import p_error,p_info,p_warn,p_title   # print fonksiyonları
+from lib.tokenizer import tokenize  # tokenizer oluşturucu
+from lib.virus_total import is_url,virustotal_url_response_handler,virustotal_url_scanner # VirüsTotal
+from lib.init_insightface import initilate_insightface  # insightface yüz tanıma sistemi 
+from lib.face_identify import insightface_method    # Yüz tanma otomatik sistem
 
+# Config dosyasını yükler 
 MainConfig = load_config_from_file()
 
+# Config yükleme durumunu kontrol eder 
 if MainConfig[0] == False:
     p_error(f"Failed to load config from file: {str(MainConfig[1])}")
     sys.exit(1)
     
 
+# Config listesi küçültülür 
 MainConfig = MainConfig[1]
-    
+
+
+
+def printBannerAndInfo():
+    """
+    Vendor ve Version bilgileri ekrana verilir 
+    """
+    print(makeFigletBanner(MainConfig["vendor"]))
+    print()
+    print()
+    print(f"* Version:\t{MainConfig['version']}")
+
+
+# tokenizer datasının yüklenmesi 
 with open(str(MainConfig["tokenizer_path"]),"r") as target:
     TOKENIZER_IS = json.load(target)
 
 
+# Gerekli küresel değişkenler 
+
+# anti illegal keras modeli 
 ANTI_ILLEGAL_MODEL = keras.saving.load_model(MainConfig["anti_illegal_model"])
+
+# metin özetleme transformers | tensorflow modeli 
 TEXT_SUMMARYZATION_MODEL = transformers.pipeline("summarization",model="facebook/bart-large-cnn")
+
+# Virüstotal api keyinin config dosyasından yüklenmesi
 VIRUSTOTAL_API_KEY = MainConfig["vt_api_key"]
+
+# Yüz tanıma sistemi için max file size belirlenmesi
 YUZ_TANIMA_MAX_IMAGE_SIZE = (5 *1024) * 1024
+
+# Temp'dir in config dosyasından alınması
 TEMP_DIR = MainConfig["temp_dir"]
+
+# Yüz tanıma sistemi yardım mesajları
 YUZ_KARSILASTIRMA_HELP_TEXT__FACE = """❔ InsightFace Yüz Karşılaştırma Sistemi Kullanımı❔
 
 ➡️ Telegrama 1 adet yüz içeren (1 tane yüz içermeli) fotoğraf atın ve yanıtlayarak /yüz1 yazın
@@ -50,36 +79,52 @@ YUZ_KARSILASTIRMA_HELP_TEXT__FACE = """❔ InsightFace Yüz Karşılaştırma Si
 ➡️ Bu sistem InsightFace buffalo_l modeli ile yüzleri tespit eder kosinüs benzerliği ile benzerlik oranını hesaplar.
 
 """
-
 YUZ_KARSILASTIRMA_HELP_TEXT__COMPARE = YUZ_KARSILASTIRMA_HELP_TEXT__FACE
 
 
 
-
+# Yüz tanıma sistemi başlatılır 
 insightfaceApp = initilate_insightface([True, MainConfig])
 FaceAnalysisToolkit = insightface_method.FaceAnlyser(insightFaceAnalyserUI=insightfaceApp)
+
+
+
+# banner ve version bilgisini yazdırır 
+printBannerAndInfo()
+
+# Gerekli dizinler oluşturulur 
 os.makedirs(TEMP_DIR, exist_ok=True)
 
+
+
+
+
 try:
+    # Telegram botunun set edilmesi
     CyberBot = telebot.TeleBot(token=MainConfig["bot_token"])
     
-except Exception as err:
+except Exception as err: # olası token hatalarını yakalamak için | kullanıcı bazlı hatalar mesela 
     p_error(f"Failed to start telegram bot: {err}")
     sys.exit(2)
     
     
 
-
+# anti illegal modeli için mesaj yakalama özelliği 
 @CyberBot.message_handler(["ai"])
 def calculate_ai(msg):    
+    
+    # debugger bilgisi 
     p_info("New requests anti illegal model!")
     
+    
+    # komutu al 
     command_is = msg.text
     command_is = str(command_is).replace("/ai", "")
 
     command_is = str(command_is).strip().replace("\n"," ")       
     current_line = ""
     
+    # metni temizle ve güvenli hale getir 
     for char in command_is:
         if str(char).isalpha() or char == " " or str(char).isnumeric():
             current_line += char
@@ -87,29 +132,39 @@ def calculate_ai(msg):
         CyberBot.reply_to(msg, "Geçersiz mesaj!")
         return
     
+    # boşlukları temizle 
     if current_line.startswith(" "):
         current_line = current_line[1:]
 
+    # model ile tahmin işlemi yapıp yanıtla 
     results = ANTI_ILLEGAL_MODEL.predict(tokenize(TOKENIZER_IS,[current_line]))
     CyberBot.reply_to(msg,f"Mesaj illegallik oranı: %{str(int(results[0][0]*100))}")
 
 
+# metin özetleme 
 @CyberBot.message_handler(["ozet"])
 def text_summary(msg):
     
+    # debugger bilgisi 
     p_info("New requests for text summaryzatiın!")
     
+    # olası sistemsel hataları yakalama için try blogu
     try:
+        # mesaj bir yanıt mı kontrol edilir 
         if msg.reply_to_message == None:
             CyberBot.reply_to(msg,f"!Lütfen bir mesaj yanıtlayarak bu komutu çalıştırın!")
             return
+        
+        # metin set edilir 
         target_text = msg.reply_to_message.text
 
+        # mesaj parcalanır ve kontrolden geçer 
         parcalanmis_mesaj = str(target_text).split(" ")
         if len(parcalanmis_mesaj) > 400 or len(parcalanmis_mesaj) < 50:
             CyberBot.reply_to(msg,f"!400 karakterden uzun veya 50 karakterden kısa mesajlar yanıtlanamazaz!")
             return
 
+        # ek temizlik 
         prepared_text = str(target_text).replace("\n", " ")
         finaly_text = ""
 
@@ -118,6 +173,7 @@ def text_summary(msg):
             if char.isalpha() or char == " " or char in [",",".","!","?","!"] or char.isnumeric():
                 finaly_text += char
 
+        # bozuk kelimeleri temizle 
         finaly_text_2 = ""
         for kelime in finaly_text.split(" "):
             if len(kelime) >= 15:
@@ -134,17 +190,18 @@ def text_summary(msg):
         # özet bilgisini al ve kullanıcıya ilet 
         CyberBot.reply_to(msg, f"🌟OZET🌟:\n\n{str(results_is[0]['summary_text'])}")
         return
-    except Exception as err:
+    except Exception as err: # olası hataların yakalandıgı kısım | ve geri bildirim 
         CyberBot.reply_to(msg, f"❌ Özet oluşturma esnasında hata oluştu")
 
 
 
-@CyberBot.message_handler(["help"])
+# help ve start mesajları
+@CyberBot.message_handler(["help", "start"])
 def send_help_message(msg):
     HELP_TEXT = f"""Merhaba ben {str(MainConfig["vendor"])} tarafından üretilmiş bir botun komutlarım şu şekilde
 
-🔗 /ai    ➡️ Bir mesaj illegalmi diye Yapay Zeka sorusu
-🔗 /url   ➡️ Bir url hakkında VirüsTotal sorgusu
+🔗 /ai <metin>   ➡️ Bir mesaj illegalmi diye Yapay Zeka sorusu
+🔗 /url <url>  ➡️ Bir url hakkında VirüsTotal sorgusu
 🔗 /ozet  ➡️ Bir metnin özetini çıkartırım (yavaş)
 🔗 /cevir ➡️ Bir metni türkçe diline çeviririm (yakında)
 🔗 /karsilastir ➡️ Yüz karşılaştırma sistemi.
@@ -152,7 +209,7 @@ def send_help_message(msg):
     CyberBot.reply_to(msg, HELP_TEXT)
 
 
-    
+# VirüsTotal URL tarama sistemi
 @CyberBot.message_handler(["url"])
 def scan_url(msg):
     # komut bir mesajı yanıtlayarakmı çalıştırılmış kontrol ediliyor 
@@ -257,21 +314,28 @@ def scan_url(msg):
     
     
 known_faces = {}  # Bilinen yüzlerin saklandığı sözlük
+
+
+# Yüzlerin set edilmesini sağlar 
 @CyberBot.message_handler(commands=["yüz1", "yüz2"])
 def get_face_comparsion(msg):
 
+    # yanıt kontrol 
     if not msg.reply_to_message or not msg.reply_to_message.photo:
         CyberBot.reply_to(msg, "➡️ Bir adet yüz içeren resim yanıtlayın.")
         return
 
+    # File size kontrol 
     if msg.reply_to_message.photo[-1].file_size > YUZ_TANIMA_MAX_IMAGE_SIZE:
         CyberBot.reply_to(msg, "➡️ Max resim boyutu 5.4mb olabilir!")
         return
-
+    
+    # Dosya bilgisini alma ve indirme 
     file_id = msg.reply_to_message.photo[-1].file_id
     file_info = CyberBot.get_file(file_id)
     downloaded_file = CyberBot.download_file(file_info.file_path)
     
+    # metne göre filtreleme ve set etme işlemleri 
     if msg.text == '/yüz1':
         known_faces['yüz1'] = downloaded_file
         CyberBot.reply_to(msg, "➡️ Yüz-1 Kaydedildi.")
@@ -288,9 +352,11 @@ def get_face_comparsion(msg):
 @CyberBot.message_handler(commands=["karsilastir"])
 def compare_of_finaly(msg):
     
+    # benzersiz kayıt isimleri belirleme 
     save_name1 = "save_face_1_"+str(random.randint(1,9999))+".png"
     save_name2 = "save_face_2_"+str(random.randint(1,9999))+".png"
 
+    # dosya yollarının belirlenmesi
     face_1_path = TEMP_DIR+save_name1
     face_2_path = TEMP_DIR+save_name2
 
@@ -406,6 +472,6 @@ def ses_den_metne(msg):
     
     
     
-        
+# botun sürekli olarak döngüde olmasını sağlar 
 p_info("Starting infinity polling for telegram bot ...")
 CyberBot.infinity_polling()

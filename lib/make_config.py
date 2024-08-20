@@ -1,13 +1,16 @@
 import json
 import sys
 import os
-
 import onnxruntime
-
-
 from .env import CONFIG_FILE_PATH as __CONFIG_FILE_PATH__
-
 from .output.consolePrint import (p_info, p_error)
+
+
+# Config dosyası oluşturmak için basit bir şema kullanır 
+# python3 -m lib.make_config şeklinde çağrılırsa otomatik çalışır 
+# config/config.json oluşturur.
+# gerekli paket: colorama 
+
 
 
 __MODULE_LOG_NAME__ = "MAKE_CONFIG_SCHEMA"

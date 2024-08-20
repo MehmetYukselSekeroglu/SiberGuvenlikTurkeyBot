@@ -7,7 +7,9 @@ __MODULE_LOG_NAME__ = "INIT_INSIGHTFACE"
 
 
 def initilate_insightface(main_conf:list) -> insightface.app.FaceAnalysis:
-
+    """
+    config dosyasını referans alarak insightface objesini hazırlar ve döndürür.
+    """
     p_info("Initilating insightface",locations=__MODULE_LOG_NAME__)
     insightfaceAnalyser = insightface.app.FaceAnalysis(**main_conf[1]["insightface"]["main"])
 

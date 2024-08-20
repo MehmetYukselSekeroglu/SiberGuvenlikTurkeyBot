@@ -1,5 +1,13 @@
 import numpy as np
+from numba import njit
+
+
+@njit(nopython=True)
 def tokenize(tokenizer_is,yorumListesi:list, dimSize:int=50):
+    """
+    metinsel ifadeleri olasılık hesaplama için sayısal hale çevirir
+    
+    """
     y_yorumlar = []
     for yorum in yorumListesi:
         y_yorum= []  
