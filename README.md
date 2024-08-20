@@ -16,3 +16,13 @@ Gerekli sistem paketlerinin kurulması.
 ```shell
 sudo apt install -y ffmpeg
 ```
+
+Config dosyasını oluşturma.
+```shell
+python3 -m lib.make_config
+```
+
+Config için gerekli eklemeleri yapmak için dosya yolu:
+```shell
+config/config.json
+```

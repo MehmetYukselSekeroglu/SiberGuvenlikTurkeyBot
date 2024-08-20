@@ -78,11 +78,11 @@ class FaceAnlyser():
         except Exception as err:
             print(f"[ FACE COMPARSION ERROR ]: {err}")
             try:
-                print(f"[ otomatik silme ]: {sourceImage, targetImage}")
+                print(f"[ otomatik silme ]: {sourceImage}, {targetImage}")
                 os.remove(sourceImage)
                 os.remove(targetImage)
                 print("[ otomatik silme ]: tamamlandır ")
             except Exception as err:
                 print(f"[ otomatik silme hatası ]: {err}")
             
-            return [False, "[ - ] Sistem kaynaklı bir hata gerçekleşti, adminlere bildirildi."]
+            return [False, "❌ Sistem kaynaklı bir hata gerçekleşti."]
