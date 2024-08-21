@@ -18,7 +18,8 @@ def voice2text(target_file_path):
             return [ "true" , finaly_text_is ]
     
     except Exception as err_msg:
-        return ["false", f"Hata: {str(err_msg)}"]
+        print(err_msg)
+        return ["false", f"API işlemi esnasında hata gerçekleşti."]
     
 
 

@@ -25,7 +25,7 @@ __CONFIG_FILE_DATA__ = {
     
     "vendor":"SiberGüvenlikTurkey",
     "name":"TeleOsintBot",
-    "version":"1.5.0",
+    "version":"1.7.0",
     "base_dir":__BASE_DIR__,
     "temp_dir":__TEMP_DIR__,
     "data_dir":__DATA_DIR__,
