@@ -31,6 +31,7 @@ __CONFIG_FILE_DATA__ = {
     "data_dir":__DATA_DIR__,
     "bot_token":"",
     "vt_api_key":"",
+    "ai_mode":False,
     "tokenizer_path":__DATA_DIR__ + "models" + os.path.sep +"tokenizer.json",
     "anti_illegal_model":__DATA_DIR__ + "models" + os.path.sep +"anti_illegal.h5",
     "web_requests":{

@@ -1,0 +1,12 @@
+pyTelegramBotAPI
+numba
+pydub
+colorama
+numpy
+onnxruntime
+onnx
+pyfiglet
+requests
+selenium
+SpeechRecognition
+insightface

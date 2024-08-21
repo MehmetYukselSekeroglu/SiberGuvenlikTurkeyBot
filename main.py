@@ -1,8 +1,6 @@
 # external library's 
 import os   # işletim sistemi operasyonları için
 import sys   # sistemsel işlemler içim
-import transformers # metin özetleme için 
-import keras    # Antiİllegal model'i kullanmak için
 import time     # Zamansal işlemler için Uyku bekleme vs
 import json     # Config dosyasını yüklemek için
 import random   # Dosya adlarını benzersiz random sayılar için
@@ -15,7 +13,6 @@ from lib.sound_lib import   *   # ses işlemleri
 from lib.load_config import load_config_from_file   # config yükleme 
 from lib.output.banner import makeFigletBanner  # banner 
 from lib.output.consolePrint import p_error,p_info,p_warn,p_title   # print fonksiyonları
-from lib.tokenizer import tokenize  # tokenizer oluşturucu
 from lib.virus_total import is_url,virustotal_url_response_handler,virustotal_url_scanner # VirüsTotal
 from lib.init_insightface import initilate_insightface  # insightface yüz tanıma sistemi 
 from lib.face_identify import insightface_method    # Yüz tanma otomatik sistem
@@ -31,7 +28,29 @@ if MainConfig[0] == False:
 
 # Config listesi küçültülür 
 MainConfig = MainConfig[1]
+AI_MODE = MainConfig["ai_mode"]
+general_ai_info = "aktif" if AI_MODE else "aktif değil"
 
+if AI_MODE:
+    p_warn("AI_MODE ENABLES!")
+    import transformers # metin özetleme için 
+    import keras    # Antiİllegal model'i kullanmak için
+    from lib.tokenizer import tokenize  # tokenizer oluşturucu
+
+
+    # tokenizer datasının yüklenmesi 
+    with open(str(MainConfig["tokenizer_path"]),"r") as target:
+        TOKENIZER_IS = json.load(target)
+        
+
+    # anti illegal keras modeli 
+    ANTI_ILLEGAL_MODEL = keras.saving.load_model(MainConfig["anti_illegal_model"])
+
+    # metin özetleme transformers | tensorflow modeli 
+    TEXT_SUMMARYZATION_MODEL = transformers.pipeline("summarization",model="facebook/bart-large-cnn")
+
+else:
+    p_warn("AI_MODE DISABLED!")
 
 
 def printBannerAndInfo():
@@ -44,18 +63,9 @@ def printBannerAndInfo():
     print(f"* Version:\t{MainConfig['version']}")
 
 
-# tokenizer datasının yüklenmesi 
-with open(str(MainConfig["tokenizer_path"]),"r") as target:
-    TOKENIZER_IS = json.load(target)
 
 
 # Gerekli küresel değişkenler 
-
-# anti illegal keras modeli 
-ANTI_ILLEGAL_MODEL = keras.saving.load_model(MainConfig["anti_illegal_model"])
-
-# metin özetleme transformers | tensorflow modeli 
-TEXT_SUMMARYZATION_MODEL = transformers.pipeline("summarization",model="facebook/bart-large-cnn")
 
 # Virüstotal api keyinin config dosyasından yüklenmesi
 VIRUSTOTAL_API_KEY = MainConfig["vt_api_key"]
@@ -112,87 +122,85 @@ except Exception as err: # olası token hatalarını yakalamak için | kullanıc
 # anti illegal modeli için mesaj yakalama özelliği 
 @CyberBot.message_handler(["ai"])
 def calculate_ai(msg):    
-    
-    # debugger bilgisi 
-    p_info("New requests anti illegal model!")
-    
-    
-    # komutu al 
-    command_is = msg.text
-    command_is = str(command_is).replace("/ai", "")
+    if AI_MODE:
+        
+        # debugger bilgisi 
+        p_info("New requests anti illegal model!")
 
-    command_is = str(command_is).strip().replace("\n"," ")       
-    current_line = ""
-    
-    # metni temizle ve güvenli hale getir 
-    for char in command_is:
-        if str(char).isalpha() or char == " " or str(char).isnumeric():
-            current_line += char
-    if str(current_line) == "None" or len(str(current_line)) == 0 or len(str(current_line)) < 5:
-        CyberBot.reply_to(msg, "Geçersiz mesaj!")
-        return
-    
-    # boşlukları temizle 
-    if current_line.startswith(" "):
-        current_line = current_line[1:]
 
-    # model ile tahmin işlemi yapıp yanıtla 
-    results = ANTI_ILLEGAL_MODEL.predict(tokenize(TOKENIZER_IS,[current_line]))
-    CyberBot.reply_to(msg,f"Mesaj illegallik oranı: %{str(int(results[0][0]*100))}")
+        # komutu al 
+        command_is = msg.text
+        command_is = str(command_is).replace("/ai", "")
+
+        command_is = str(command_is).strip().replace("\n"," ")       
+        current_line = ""
+
+        # metni temizle ve güvenli hale getir 
+        for char in command_is:
+            if str(char).isalpha() or char == " " or str(char).isnumeric():
+                current_line += char
+        if str(current_line) == "None" or len(str(current_line)) == 0 or len(str(current_line)) < 5:
+            CyberBot.reply_to(msg, "Geçersiz mesaj!")
+            return
+
+        # boşlukları temizle 
+        if current_line.startswith(" "):
+            current_line = current_line[1:]
+
+        # model ile tahmin işlemi yapıp yanıtla 
+        results = ANTI_ILLEGAL_MODEL.predict(tokenize(TOKENIZER_IS,[current_line]))
+        CyberBot.reply_to(msg,f"Mesaj illegallik oranı: %{str(int(results[0][0]*100))}")
+    else:
+        CyberBot.reply_to(msg, f"❌ AI_MODE is disabled by owner.")
+
 
 
 # metin özetleme 
 @CyberBot.message_handler(["ozet"])
 def text_summary(msg):
     
-    # debugger bilgisi 
-    p_info("New requests for text summaryzatiın!")
-    
-    # olası sistemsel hataları yakalama için try blogu
-    try:
-        # mesaj bir yanıt mı kontrol edilir 
-        if msg.reply_to_message == None:
-            CyberBot.reply_to(msg,f"!Lütfen bir mesaj yanıtlayarak bu komutu çalıştırın!")
+    if AI_MODE:
+        # debugger bilgisi 
+        p_info("New requests for text summaryzatiın!")
+
+        # olası sistemsel hataları yakalama için try blogu
+        try:
+            # mesaj bir yanıt mı kontrol edilir 
+            if msg.reply_to_message == None:
+                CyberBot.reply_to(msg,f"!Lütfen bir mesaj yanıtlayarak bu komutu çalıştırın!")
+                return
+
+            # metin set edilir 
+            target_text = msg.reply_to_message.text
+
+            # mesaj parcalanır ve kontrolden geçer 
+            parcalanmis_mesaj = str(target_text).split(" ")
+            if len(parcalanmis_mesaj) > 400 or len(parcalanmis_mesaj) < 50:
+                CyberBot.reply_to(msg,f"!400 karakterden uzun veya 50 karakterden kısa mesajlar yanıtlanamazaz!")
+                return
+            # ek temizlik 
+            prepared_text = str(target_text).replace("\n", " ")
+            finaly_text = ""
+            # karakter kontrolü sağla 
+            for char in prepared_text:
+                if char.isalpha() or char == " " or char in [",",".","!","?","!"] or char.isnumeric():
+                    finaly_text += char
+            # bozuk kelimeleri temizle 
+            finaly_text_2 = ""
+            for kelime in finaly_text.split(" "):
+                if len(kelime) >= 15:
+                    continue
+                else:
+                    finaly_text_2 += " " + kelime
+            # özeti oluştur 
+            results_is = TEXT_SUMMARYZATION_MODEL(finaly_text_2,max_length=200,min_length=30, do_sample=False)
+            # özet bilgisini al ve kullanıcıya ilet 
+            CyberBot.reply_to(msg, f"🌟OZET🌟:\n\n{str(results_is[0]['summary_text'])}")
             return
-        
-        # metin set edilir 
-        target_text = msg.reply_to_message.text
-
-        # mesaj parcalanır ve kontrolden geçer 
-        parcalanmis_mesaj = str(target_text).split(" ")
-        if len(parcalanmis_mesaj) > 400 or len(parcalanmis_mesaj) < 50:
-            CyberBot.reply_to(msg,f"!400 karakterden uzun veya 50 karakterden kısa mesajlar yanıtlanamazaz!")
-            return
-
-        # ek temizlik 
-        prepared_text = str(target_text).replace("\n", " ")
-        finaly_text = ""
-
-        # karakter kontrolü sağla 
-        for char in prepared_text:
-            if char.isalpha() or char == " " or char in [",",".","!","?","!"] or char.isnumeric():
-                finaly_text += char
-
-        # bozuk kelimeleri temizle 
-        finaly_text_2 = ""
-        for kelime in finaly_text.split(" "):
-            if len(kelime) >= 15:
-                continue
-            else:
-                finaly_text_2 += " " + kelime
-            
-        
-
-
-        # özeti oluştur 
-        results_is = TEXT_SUMMARYZATION_MODEL(finaly_text_2,max_length=200,min_length=30, do_sample=False)
-
-        # özet bilgisini al ve kullanıcıya ilet 
-        CyberBot.reply_to(msg, f"🌟OZET🌟:\n\n{str(results_is[0]['summary_text'])}")
-        return
-    except Exception as err: # olası hataların yakalandıgı kısım | ve geri bildirim 
-        CyberBot.reply_to(msg, f"❌ Özet oluşturma esnasında hata oluştu")
-
+        except Exception as err: # olası hataların yakalandıgı kısım | ve geri bildirim 
+            CyberBot.reply_to(msg, f"❌ Özet oluşturma esnasında hata oluştu")
+    else:
+        CyberBot.reply_to(msg, f"❌ AI_MODE is disabled by owner.")
 
 
 # help ve start mesajları
@@ -200,9 +208,9 @@ def text_summary(msg):
 def send_help_message(msg):
     HELP_TEXT = f"""Merhaba ben {str(MainConfig["vendor"])} tarafından üretilmiş bir botun komutlarım şu şekilde
 
-🔗 /ai <metin>   ➡️ Bir mesaj illegalmi diye Yapay Zeka sorusu
+🔗 /ai <metin>   ➡️ Bir mesaj illegalmi diye Yapay Zeka sorusu ({general_ai_info})
 🔗 /url <url>  ➡️ Bir url hakkında VirüsTotal sorgusu
-🔗 /ozet  ➡️ Bir metnin özetini çıkartırım (yavaş)
+🔗 /ozet  ➡️ Bir metnin özetini çıkartırım (yavaş) ({general_ai_info})
 🔗 /cevir ➡️ Bir metni türkçe diline çeviririm (yakında)
 🔗 /karsilastir ➡️ Yüz karşılaştırma sistemi.
 """
