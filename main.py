@@ -213,6 +213,7 @@ def send_help_message(msg):
 🔗 /ozet  ➡️ Bir metnin özetini çıkartırım (yavaş) ({general_ai_info})
 🔗 /cevir ➡️ Bir metni türkçe diline çeviririm (yakında)
 🔗 /karsilastir ➡️ Yüz karşılaştırma sistemi.
+🔗 /totext ➡️ Sesli mesajı Google API ile metne dönüştürür.
 """
     CyberBot.reply_to(msg, HELP_TEXT)
 
@@ -433,44 +434,47 @@ def compare_of_finaly(msg):
 def ses_den_metne(msg):
     # thread fonksiyonunun tanımlanması 
     def run_as_threads(): 
-        # yanıtlanan mesaj bir sesli mesajmı diye kontrol ediliyor 
-        if msg.reply_to_message:
-            if not msg.reply_to_message.voice:
+        try:
+            # yanıtlanan mesaj bir sesli mesajmı diye kontrol ediliyor 
+            if msg.reply_to_message:
+                if not msg.reply_to_message.voice:
+                    CyberBot.reply_to(msg, "🎧 Lütfem bir sesli mesaj yanıtlayınız...")
+                    return
+
+                # Dosya bilgilerinin alınması
+                file_info = CyberBot.get_file(msg.reply_to_message.voice.file_id)
+                target_ses_file = CyberBot.download_file(file_info.file_path)
+
+                # Dosyaya benzersiz bir isim atanması ve TEMP path altına kaydedilmesi 
+                rand_save_name = "voice2text_"+str(random.randint(1,999))+".ogg"
+                with open(TEMP_DIR+rand_save_name, "wb") as ses_file:
+                    ses_file.write(target_ses_file)
+
+                # Ses dosyasının google api sine yollanabilmesi için vaw formatına çevrilmesi 
+                converted_sound_is = ConvertAnyAudio_to_wav(TEMP_DIR+rand_save_name,
+                                                            temp_dir_path=TEMP_DIR)["path"]
+
+                # Eski dosya çevrilerek yeni format verildi eski formattaki dosyanın kaldırılması 
+                os.remove(TEMP_DIR+rand_save_name)
+
+                # Kendi kütüphanemiz olan soundlib den sesden metne fonksiyonu ile çevirmeyi başltıyoruz 
+                results_is = voice2text(converted_sound_is)
+
+                # Google api sine istek atıldığı için dosyalara ihtiyacımız kalmadı kaldırabiliriz 
+                os.remove(converted_sound_is)
+
+                # Son olarak bilgilendirme metnini tanımlayalım 
+                finaly_output_data_is = "🎧 Ses'den metne (Google):\n"
+
+                # Bilgilendirme metninin sonuna api den gelen metni ekleyerek mesajı yanıtlayalım 
+                CyberBot.reply_to(msg, finaly_output_data_is+results_is[1])
+
+            # yanıtlanan mesaj bir ses dosyası değilse geri bildirim verilsin 
+            else:
                 CyberBot.reply_to(msg, "🎧 Lütfem bir sesli mesaj yanıtlayınız...")
                 return
-            
-            # Dosya bilgilerinin alınması
-            file_info = CyberBot.get_file(msg.reply_to_message.voice.file_id)
-            target_ses_file = CyberBot.download_file(file_info.file_path)
-            
-            # Dosyaya benzersiz bir isim atanması ve TEMP path altına kaydedilmesi 
-            rand_save_name = "voice2text_"+str(random.randint(1,999))+".ogg"
-            with open(TEMP_DIR+rand_save_name, "wb") as ses_file:
-                ses_file.write(target_ses_file)
-                
-            # Ses dosyasının google api sine yollanabilmesi için vaw formatına çevrilmesi 
-            converted_sound_is = ConvertAnyAudio_to_wav(TEMP_DIR+rand_save_name,
-                                                        temp_dir_path=TEMP_DIR)["path"]
-            
-            # Eski dosya çevrilerek yeni format verildi eski formattaki dosyanın kaldırılması 
-            os.remove(TEMP_DIR+rand_save_name)
-            
-            # Kendi kütüphanemiz olan soundlib den sesden metne fonksiyonu ile çevirmeyi başltıyoruz 
-            results_is = voice2text(converted_sound_is)
-            
-            # Google api sine istek atıldığı için dosyalara ihtiyacımız kalmadı kaldırabiliriz 
-            os.remove(converted_sound_is)
-            
-            # Son olarak bilgilendirme metnini tanımlayalım 
-            finaly_output_data_is = "🎧 Ses'den metne (Google):\n"
-            
-            # Bilgilendirme metninin sonuna api den gelen metni ekleyerek mesajı yanıtlayalım 
-            CyberBot.reply_to(msg, finaly_output_data_is+results_is[1])
-        
-        # yanıtlanan mesaj bir ses dosyası değilse geri bildirim verilsin 
-        else:
-            CyberBot.reply_to(msg, "🎧 Lütfem bir sesli mesaj yanıtlayınız...")
-            return
+        except Exception as err:
+            CyberBot.reply_to(msg, "🎧 API Hatası Gerçekleşti.")
 
     # Threads'ın başlatılması 
     ses2metin_threadı = threading.Thread(target=run_as_threads)
