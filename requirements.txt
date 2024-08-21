@@ -14,3 +14,4 @@ tensorflow
 tf-keras
 insightface
 transformers
+opencv-python
