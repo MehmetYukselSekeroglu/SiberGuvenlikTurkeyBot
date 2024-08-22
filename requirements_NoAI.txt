@@ -10,3 +10,4 @@ requests
 selenium
 SpeechRecognition
 insightface
+opencv-python

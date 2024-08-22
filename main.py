@@ -16,8 +16,9 @@ from lib.output.consolePrint import p_error,p_info,p_warn,p_title   # print fonk
 from lib.virus_total import is_url,virustotal_url_response_handler,virustotal_url_scanner # VirüsTotal
 from lib.init_insightface import initilate_insightface  # insightface yüz tanıma sistemi 
 from lib.face_identify import insightface_method    # Yüz tanma otomatik sistem
-from lib import input_controls
-from lib.ip_information import GetIpQuery
+from lib import input_controls  # input güvenlik kontrolleri
+from lib.ip_information import GetIpQuery # ip bilgisi alma 
+from lib.tckn_calculator import validation_check,tckn_generator # tckn hesaplama doğrulama için 
 # Config dosyasını yükler 
 MainConfig = load_config_from_file()
 
@@ -216,6 +217,7 @@ def send_help_message(msg):
 🔗 /karsilastir ➡️ Yüz karşılaştırma sistemi.
 🔗 /totext ➡️ Sesli mesajı Google API ile metne dönüştürür.
 🔗 /ip <ip_adresi> ➡️ Hedef IP Adresi Hakkında Bilgi Verir. 
+🔗 /hesapla <tc_numarası> ➡️ Matematiksel olarak TC numarası hesaplar. 
 """
     CyberBot.reply_to(msg, HELP_TEXT)
 
@@ -526,7 +528,43 @@ def ip_information(msg):
 
             CyberBot.reply_to(msg,output_data_is,)
     
+@CyberBot.message_handler(commands=["hesapla"])
+def tckn_calculator(msg):
+
+    str_data = msg.text.split(" ")
+    if len(str_data) != 2:
+        CyberBot.reply_to(msg, "❓Kullanım Şekli:\n\n/hesapla <target_tckn>\n\n❗️ Bu Sistem TC atama algoritmasına dayanır tamamen matematiksel bir sistemdir, Kullanıcı Girdilerinden Sistem Sorumlu Değildir❗️")
+        return
     
+    target_tc = str_data[1] 
+    
+    if len(target_tc) != 11 or not str(target_tc).isdigit() or not validation_check(target_tc):
+        CyberBot.reply_to(msg,f"❌ TC Numarası Geçersizdir." )
+        return
+    
+    results_is = tckn_generator(target_tc,10)
+    
+    if not results_is[0]:
+        CyberBot.reply_to(msg, "❌ Hesaplama Hatası Gerçekleşti.")
+        return
+
+    return_text = """❓Geriye Dönük: \n"""
+    for geri in results_is[1]:
+        return_text += f"`{geri}`\n"
+    
+    return_text += "❓İleri Donük: \n"
+    for ileri in results_is[2]:
+        return_text += f"`{ileri}`\n"
+    
+    CyberBot.reply_to(msg, return_text,parse_mode="markdown")
+    return
+        
+
+
+
+
+
+ 
 # botun sürekli olarak döngüde olmasını sağlar 
 p_info("Starting infinity polling for telegram bot ...")
 CyberBot.infinity_polling()
