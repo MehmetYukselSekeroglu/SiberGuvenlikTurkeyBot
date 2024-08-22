@@ -16,7 +16,8 @@ from lib.output.consolePrint import p_error,p_info,p_warn,p_title   # print fonk
 from lib.virus_total import is_url,virustotal_url_response_handler,virustotal_url_scanner # VirüsTotal
 from lib.init_insightface import initilate_insightface  # insightface yüz tanıma sistemi 
 from lib.face_identify import insightface_method    # Yüz tanma otomatik sistem
-
+from lib import input_controls
+from lib.ip_information import GetIpQuery
 # Config dosyasını yükler 
 MainConfig = load_config_from_file()
 
@@ -214,6 +215,7 @@ def send_help_message(msg):
 🔗 /cevir ➡️ Bir metni türkçe diline çeviririm (yakında)
 🔗 /karsilastir ➡️ Yüz karşılaştırma sistemi.
 🔗 /totext ➡️ Sesli mesajı Google API ile metne dönüştürür.
+🔗 /ip <ip_adresi> ➡️ Hedef IP Adresi Hakkında Bilgi Verir. 
 """
     CyberBot.reply_to(msg, HELP_TEXT)
 
@@ -481,7 +483,48 @@ def ses_den_metne(msg):
     ses2metin_threadı.start()
 
     
-    
+@CyberBot.message_handler(commands=["ip"])
+def ip_information(msg):
+
+    str_data = msg.text.split(" ")
+    if len(str_data) != 2:
+        CyberBot.reply_to(msg, "❓Kullanım Şekli:\n\n/ip <target_ip_address>")
+    else:
+        target_ip_is = str_data[1] 
+        target_ip_is = str(target_ip_is)
+        
+        # ip adresi geçerlimi geçersizmi diye kontrol edilir 
+        if not input_controls.is_validIp(target_ip=target_ip_is):
+            CyberBot.reply_to(msg,"❓ Girilen IP Adresi Geçersiz, Lütfen Kontrol Ediniz.")
+            return
+        
+        # istek yapılır ve sonuçlar alınır 
+        ipinfo_io_data = GetIpQuery(str(target_ip_is))
+        if ipinfo_io_data[0] == "false":
+            CyberBot.reply_to(msg, str(ipinfo_io_data[1]))
+
+        else:
+            data = ipinfo_io_data[1]
+                
+            output_data_is = f"""❓HEDEF: `{str(data["ip"])}`
+"""                
+            if "hostname" in data:
+                output_data_is += f"""🚩Hostname: {str(data["hostname"])}\n"""
+            if "city" in data:
+                output_data_is += f"""🚩Şehir: {str(data["city"])}\n"""
+            if "region" in data:
+                output_data_is += f"""🚩Bölge: {str(data["region"])}\n"""
+            if "loc" in data:
+                output_data_is += f"""🚩Konum: {str(data["loc"])}\n"""
+            if "org" in data:
+                output_data_is += f"""🚩Organizasyon: {str(data["org"])}\n"""
+            if "timezone" in data:
+                output_data_is += f"""🕞Saat dilimi: {str(data["timezone"])}\n"""
+            if "postal" in data:
+                output_data_is += f"""📫Posta kodu: {str(data["postal"])}\n"""
+
+
+            CyberBot.reply_to(msg,output_data_is,)
     
     
 # botun sürekli olarak döngüde olmasını sağlar 
