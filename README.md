@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 Gerekli sistem paketlerinin kurulması:
 ```shell
-sudo apt install -y ffmpeg
+sudo apt install -y ffmpeg flac
 ```
 
 Config dosyasını oluşturma:
