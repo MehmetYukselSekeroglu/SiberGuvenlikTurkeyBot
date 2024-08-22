@@ -303,7 +303,7 @@ def scan_url(msg):
                     # Yollanacak bilgileri markdown şeklinde eklemeler yaparak ayarlıyoruz 
                     output_data_is = f"""🛑Sonuçlar🛑:\n
 🔗URL🔗: `{str(data[0])}`
-🦠Tespit🦠: `{str(data[1])} / {str(data[2])}`
+🦠Tespit🦠: `{str(data[2])} / {str(data[1])}`
 ⏳Tarih⏳: `{str(data[3])}`
 [🔗VirüsTotal Adresi🔗]({str(data[4])})
 """                 
